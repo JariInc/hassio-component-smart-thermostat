@@ -796,14 +796,14 @@ class SmartThermostat(ClimateEntity, RestoreEntity, Thermostat):
                 if (
                         self._hvac_action != HVACAction.COOLING and
                         controller.mode == HVACMode.COOL and
-                        (controller.running or (controller.working and self._hvac_mode != HVACMode.OFF))
+                        (controller.running or (controller.working and self._hvac_mode == HVACMode.OFF))
                 ):
                     _LOGGER.debug("%s: Stopping %s, %s", self.entity_id, controller.name, controller_debug_info)
                     await controller.async_stop()
                 if (
                         self._hvac_action != HVACAction.HEATING and
                         controller.mode == HVACMode.HEAT and
-                        (controller.running or (controller.working and self._hvac_mode != HVACMode.OFF))
+                        (controller.running or (controller.working and self._hvac_mode == HVACMode.OFF))
                 ):
                     _LOGGER.debug("%s: Stopping %s, %s", self.entity_id, controller.name, controller_debug_info)
                     await controller.async_stop()
