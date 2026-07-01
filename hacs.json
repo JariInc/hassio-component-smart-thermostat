@@ -1,0 +1,7 @@
+{
+  "name": "Smart Thermostat",
+  "homeassistant": "2023.1.0",
+  "render_readme": true,
+  "filename": "manifest.json",
+  "country": ["US", "UK", "EU", "NO", "RU"]
+}
