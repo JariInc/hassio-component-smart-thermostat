@@ -80,6 +80,7 @@ CONF_HEAT_COOL_DISABLED = "heat_cool_disabled"
 CONF_PRECISION = "precision"
 CONF_PID_PARAMS = "pid_params"
 CONF_PID_SAMPLE_PERIOD = "pid_sample_period"
+CONF_SETPOINT_MIN_INTERVAL = "setpoint_min_interval"
 CONF_PID_MIN = "min"
 CONF_PID_MAX = "max"
 CONF_PID_SWITCH_ENTITY_ID = "switch_entity_id"
@@ -128,7 +129,8 @@ TARGET_SCHEMA_PID_REGULATOR_COMMON = TARGET_SCHEMA_COMMON.extend({
                  ): _cv_pid_params_list,
     vol.Optional(CONF_PID_SAMPLE_PERIOD, default=None): vol.Any(None, cv.positive_time_period),
     vol.Optional(CONF_PID_MIN, default=None): vol.Any(None, vol.Coerce(float)),
-    vol.Optional(CONF_PID_MAX, default=None): vol.Any(None, vol.Coerce(float))
+    vol.Optional(CONF_PID_MAX, default=None): vol.Any(None, vol.Coerce(float)),
+    vol.Optional(CONF_SETPOINT_MIN_INTERVAL, default=None): vol.Any(None, cv.positive_time_period)
 })
 
 TARGET_SCHEMA_PID_REGULATOR_PWM_SWITCH = TARGET_SCHEMA_PID_REGULATOR_COMMON.extend({
@@ -251,7 +253,8 @@ def _create_controllers(
                     conf[CONF_PID_SAMPLE_PERIOD],
                     inverted,
                     keep_alive,
-                    conf[CONF_PWM_SWITCH_PERIOD]
+                    conf[CONF_PWM_SWITCH_PERIOD],
+                    conf[CONF_SETPOINT_MIN_INTERVAL]
                 )
             else:
                 min_duration = conf[CONF_MIN_DUR] if CONF_MIN_DUR in conf else None
@@ -303,7 +306,8 @@ def _create_controllers(
                 conf[CONF_PID_MIN],
                 conf[CONF_PID_MAX],
                 conf[CONF_PID_SWITCH_ENTITY_ID],
-                conf[CONF_PID_SWITCH_INVERTED]
+                conf[CONF_PID_SWITCH_INVERTED],
+                conf[CONF_SETPOINT_MIN_INTERVAL]
             )
 
         elif domain in [CLIMATE_DOMAIN]:
@@ -318,7 +322,8 @@ def _create_controllers(
                 inverted,
                 keep_alive,
                 conf[CONF_PID_MIN],
-                conf[CONF_PID_MAX]
+                conf[CONF_PID_MAX],
+                conf[CONF_SETPOINT_MIN_INTERVAL]
             )
 
         else:

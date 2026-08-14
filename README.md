@@ -164,6 +164,7 @@ See [General PID explanation](docs/PID.md) how to tune PID parameters.
 * `keep_alive` _(Optional)_ - Send keep-alive interval. Use with heaters, coolers,  A/C units that shut off if they don’t receive a signal from their remote for a while. 
 * `pid_params` _(Required)_ - PID params comma-separated string or array in the format `Kp, Ki, Kd` (_Always positive, will be inverted internally for cool mode_).
 * `pid_sample_period` _(Optional)_ - PID constant sample time period.
+* `setpoint_min_interval` _(Optional)_ - Minimum time between setpoint changes. Prevents rapid switching/beeping when the sensor updates frequently.
 * `pwm_period`  _(Required)_ - PWM period. Switch will be turned on and turned off according internal PID output once in this period.  
 
 #### Behavior
@@ -189,6 +190,7 @@ See [General PID explanation](docs/PID.md) how to tune PID parameters.
 * `keep_alive` _(Optional)_ - Send keep-alive interval. Use with heaters, coolers,  A/C units that shut off if they don’t receive a signal from their remote for a while. 
 * `pid_params` _(Required)_ - PID params comma-separated string or array in the format `Kp, Ki, Kd` (_Always positive, will be inverted internally for cool mode_).
 * `pid_sample_period` _(Optional)_ - PID constant sample time period.
+* `setpoint_min_interval` _(Optional)_ - Minimum time between setpoint changes. Prevents rapid setpoint switching/beeping when the sensor updates frequently and the demand sits on a temperature step boundary; the previous target is held until this interval has elapsed.
 * `min` _(Optional)_ - Minimum temperature which can be set. Attribute `min_temp` from `entity_id` will be used if not specified.
 * `max` _(Optional)_ - Maximum temperature which can be set. Attribute `max_temp` from `entity_id` will be used if not specified.
 
@@ -212,6 +214,7 @@ See [General PID explanation](docs/PID.md) how to tune PID parameters.
 * `keep_alive` _(Optional)_ - Send keep-alive interval. Use with heaters, coolers,  A/C units that shut off if they don’t receive a signal from their remote for a while. 
 * `pid_params` _(Required)_ - PID params comma-separated string or array in the format `Kp, Ki, Kd` (_Always positive, will be inverted internally for cool mode_).
 * `pid_sample_period` _(Optional)_ - PID constant sample time period.
+* `setpoint_min_interval` _(Optional)_ - Minimum time between setpoint changes. Prevents rapid switching/beeping when the sensor updates frequently.
 * `min` _(Optional)_ - Minimum temperature which can be set. Attribute `min` from `entity_id` will be used if not specified.
 * `max` _(Optional)_ - Maximum temperature which can be set. Attribute `max` from `entity_id` will be used if not specified.
 * `switch_entity_id` _(Required)_ - Switch entity which belongs to `switch`,`input_boolean` domains.

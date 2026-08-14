@@ -360,7 +360,8 @@ class AbstractPidController(AbstractController, abc.ABC):
             inverted: bool,
             keep_alive: Optional[timedelta],
             output_min: Optional[float],
-            output_max: Optional[float]
+            output_max: Optional[float],
+            setpoint_min_interval: Optional[timedelta] = None
     ):
         super().__init__(name, mode, target_entity_id, inverted, keep_alive)
         self._initial_pid_params = pid_params
@@ -368,6 +369,8 @@ class AbstractPidController(AbstractController, abc.ABC):
         self._pid_sample_period = pid_sample_period
         self._output_min = output_min
         self._output_max = output_max
+        self._setpoint_min_interval = setpoint_min_interval
+        self._last_setpoint_time: Optional[datetime] = None
         self._pid: Optional[PID] = None
         self._auto_tune = False
         self._last_output: Optional[float] = None
@@ -551,13 +554,22 @@ class AbstractPidController(AbstractController, abc.ABC):
             p, i, d = self._pid.components
 
             if current_output != output:
-                _LOGGER.debug("%s: %s - Current temp: %s -> %s, target: %s, limits: %s, adjusting from %s to %s (%s) (p:%f, i:%f, d:%f)",
-                              self._thermostat_entity_id, self.name,
-                              self._last_current_value, cur_temp, target_temp, output_limits,
-                              current_output, output, reason,
-                              p, i, d
-                              )
-                await self._apply_output(output)
+                if (self._setpoint_min_interval and self._last_setpoint_time and
+                        dt_util.now() - self._last_setpoint_time < self._setpoint_min_interval):
+                    # ponytail: hold setpoint within min interval to avoid flapping/beeping
+                    _LOGGER.debug("%s: %s - holding setpoint %s (wanted %s) for %s (%s)",
+                                  self._thermostat_entity_id, self.name,
+                                  current_output, output,
+                                  self._setpoint_min_interval, reason)
+                else:
+                    _LOGGER.debug("%s: %s - Current temp: %s -> %s, target: %s, limits: %s, adjusting from %s to %s (%s) (p:%f, i:%f, d:%f)",
+                                  self._thermostat_entity_id, self.name,
+                                  self._last_current_value, cur_temp, target_temp, output_limits,
+                                  current_output, output, reason,
+                                  p, i, d
+                                  )
+                    await self._apply_output(output)
+                    self._last_setpoint_time = dt_util.now()
             else:
                 _LOGGER.debug("%s: %s - Current temp: %s -> %s, target: %s, limits: %s, no changes needed, output: %s (%s) (p:%f, i:%f, d:%f)",
                               self._thermostat_entity_id, self.name,
@@ -638,12 +650,13 @@ class PwmSwitchPidController(AbstractPidController):
             inverted: bool,
             keep_alive: Optional[timedelta],
             pwm_period: timedelta,
+            setpoint_min_interval: Optional[timedelta] = None,
     ):
         super().__init__(name, mode, target_entity_id,
                          pid_params, pid_sample_period,
                          inverted, keep_alive,
-                         None, None  # No config options. static values are PWM_SWITCH_MIN_VALUE/PWM_SWITCH_MAX_VALUE
-                         )
+                         None, None,  # No config options. static values are PWM_SWITCH_MIN_VALUE/PWM_SWITCH_MAX_VALUE
+                         setpoint_min_interval)
         self._pwm_period = pwm_period
         self._pwm_value: Optional[int] = None
         target_entity_name = split_entity_id(target_entity_id)[1]
@@ -851,12 +864,14 @@ class NumberPidController(AbstractPidController):
             output_min: Optional[float],
             output_max: Optional[float],
             switch_entity_id: str,
-            switch_inverted: bool
+            switch_inverted: bool,
+            setpoint_min_interval: Optional[timedelta] = None
     ):
         super().__init__(name, mode, target_entity_id,
                          pid_params, pid_sample_period,
                          inverted, keep_alive,
-                         output_min, output_max)
+                         output_min, output_max,
+                         setpoint_min_interval)
         self._switch_entity_id = switch_entity_id
         self._switch_inverted = switch_inverted
 
@@ -956,12 +971,14 @@ class ClimatePidController(AbstractPidController):
             inverted: bool,
             keep_alive: Optional[timedelta],
             output_min: Optional[float],
-            output_max: Optional[float]
+            output_max: Optional[float],
+            setpoint_min_interval: Optional[timedelta] = None
     ):
         super().__init__(name, mode, target_entity_id,
                          pid_params, pid_sample_period,
                          inverted, keep_alive,
-                         output_min, output_max)
+                         output_min, output_max,
+                         setpoint_min_interval)
 
     @property
     def working(self):
