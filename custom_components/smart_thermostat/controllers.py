@@ -22,6 +22,8 @@ from homeassistant.helpers.event import async_track_time_interval
 _LOGGER = logging.getLogger(__name__)
 
 ATTR_PID_PARAMS = "pid_params"
+ATTR_PID_EFFECTIVE_SETPOINT = "effective_setpoint"
+ATTR_PID_COST_OFFSET = "cost_offset"
 
 REASON_THERMOSTAT_STOP = "stop"
 REASON_THERMOSTAT_FIRST_RUN = "first_run"
@@ -374,6 +376,8 @@ class AbstractPidController(AbstractController, abc.ABC):
         self._setpoint_min_interval = setpoint_min_interval
         self._cost_signal = cost_signal
         self._cost_scaling_factor = cost_scaling_factor
+        self._cost_offset = None
+        self._effective_setpoint = None
         self._last_setpoint_time: Optional[datetime] = None
         self._pid: Optional[PID] = None
         self._auto_tune = False
@@ -428,6 +432,10 @@ class AbstractPidController(AbstractController, abc.ABC):
         if self._current_pid_params:
             p = self._current_pid_params
             attrs[ATTR_PID_PARAMS] = f"{p.kp},{p.ki},{p.kd}"
+        if self._cost_offset is not None:
+            attrs[ATTR_PID_COST_OFFSET] = self._cost_offset
+        if self._effective_setpoint is not None:
+            attrs[ATTR_PID_EFFECTIVE_SETPOINT] = self._effective_setpoint
         return attrs
 
     @final
@@ -470,15 +478,22 @@ class AbstractPidController(AbstractController, abc.ABC):
         # ponytail: cost offset requires both a valid cost entity and a non-null
         # scaling factor; otherwise fall back to the plain climate setpoint.
         if not self._cost_signal or self._cost_scaling_factor is None:
+            self._cost_offset = None
+            self._effective_setpoint = target_temp
             return target_temp
 
         state = self._hass.states.get(self._cost_signal)
         try:
             cost = float(state.state)
         except (AttributeError, TypeError, ValueError):
+            self._cost_offset = None
+            self._effective_setpoint = target_temp
             return target_temp
 
-        return target_temp + cost * self._cost_scaling_factor
+        offset = cost * self._cost_scaling_factor
+        self._cost_offset = offset
+        self._effective_setpoint = target_temp + offset
+        return self._effective_setpoint
 
     def get_used_entity_ids(self) -> [str]:
         ids = super().get_used_entity_ids()

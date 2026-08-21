@@ -205,6 +205,12 @@ See [General PID explanation](docs/PID.md) how to tune PID parameters.
 * Climate `entity_id` temperature will be adjusted every `pid_sample_period` it is provided, or on every `CONFIF.target_sensor` update if `pid_sample_period` is not provided.
 * `pid_params` will be inverted if `inverted` was set to `true`
 
+#### State attributes (PID controllers)
+
+The thermostat entity exposes per-controller state on the `ctrl_<controller>_<entity>` attribute key:
+* `effective_setpoint` - PID setpoint used internally, including any cost offset.
+* `cost_offset` - The `cost_signal` * `cost_scaling_factor` offset added to the climate setpoint. Omitted when the offset is not active.
+
 ### Number + Switch controller (PID mode supported)
 
 Domains: `number`,`input_number`
