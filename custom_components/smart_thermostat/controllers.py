@@ -1,6 +1,6 @@
 import abc
 import logging
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from homeassistant.util import dt as dt_util
 
 from typing import Optional, final, Mapping, Any
@@ -361,7 +361,9 @@ class AbstractPidController(AbstractController, abc.ABC):
             keep_alive: Optional[timedelta],
             output_min: Optional[float],
             output_max: Optional[float],
-            setpoint_min_interval: Optional[timedelta] = None
+            setpoint_min_interval: Optional[timedelta] = None,
+            cost_signal: Optional[str] = None,
+            cost_scaling_factor: Optional[float] = None
     ):
         super().__init__(name, mode, target_entity_id, inverted, keep_alive)
         self._initial_pid_params = pid_params
@@ -370,6 +372,8 @@ class AbstractPidController(AbstractController, abc.ABC):
         self._output_min = output_min
         self._output_max = output_max
         self._setpoint_min_interval = setpoint_min_interval
+        self._cost_signal = cost_signal
+        self._cost_scaling_factor = cost_scaling_factor
         self._last_setpoint_time: Optional[datetime] = None
         self._pid: Optional[PID] = None
         self._auto_tune = False
@@ -461,6 +465,27 @@ class AbstractPidController(AbstractController, abc.ABC):
                      reason
                      )
 
+    def _get_pid_setpoint(self, target_temp: float) -> float:
+        """Effective PID setpoint, adding cost signal contribution if usable."""
+        # ponytail: cost offset requires both a valid cost entity and a non-null
+        # scaling factor; otherwise fall back to the plain climate setpoint.
+        if not self._cost_signal or self._cost_scaling_factor is None:
+            return target_temp
+
+        state = self._hass.states.get(self._cost_signal)
+        try:
+            cost = float(state.state)
+        except (AttributeError, TypeError, ValueError):
+            return target_temp
+
+        return target_temp + cost * self._cost_scaling_factor
+
+    def get_used_entity_ids(self) -> [str]:
+        ids = super().get_used_entity_ids()
+        if self._cost_signal:
+            ids.append(self._cost_signal)
+        return ids
+
     @abc.abstractmethod
     def _is_on(self):
         """Is turned on"""
@@ -485,7 +510,7 @@ class AbstractPidController(AbstractController, abc.ABC):
 
         self._pid = PID(
             pid_params.kp, pid_params.ki, pid_params.kd,
-            setpoint=target_temp,
+            setpoint=self._get_pid_setpoint(target_temp),
             output_limits=output_limits,
             auto_mode=False,
             sample_time=self._pid_sample_period.total_seconds() if self._pid_sample_period else None
@@ -517,12 +542,13 @@ class AbstractPidController(AbstractController, abc.ABC):
             _LOGGER.error("%s: %s - No PID", self._thermostat_entity_id, self.name)
             return
 
-        if self._pid.setpoint != target_temp:
+        effective_target = self._get_pid_setpoint(target_temp)
+        if self._pid.setpoint != effective_target:
             _LOGGER.info("%s: %s - Target setpoint was changed from %s to %s (%s)",
                          self._thermostat_entity_id, self.name,
-                         self._pid.setpoint, target_temp, reason
+                         self._pid.setpoint, effective_target, reason
                          )
-            self._pid.setpoint = target_temp
+            self._pid.setpoint = effective_target
 
         output_limits = self.__get_output_limits()
         if self._last_output_limits != output_limits:
@@ -651,12 +677,15 @@ class PwmSwitchPidController(AbstractPidController):
             keep_alive: Optional[timedelta],
             pwm_period: timedelta,
             setpoint_min_interval: Optional[timedelta] = None,
+            cost_signal: Optional[str] = None,
+            cost_scaling_factor: Optional[float] = None,
     ):
         super().__init__(name, mode, target_entity_id,
                          pid_params, pid_sample_period,
                          inverted, keep_alive,
                          None, None,  # No config options. static values are PWM_SWITCH_MIN_VALUE/PWM_SWITCH_MAX_VALUE
-                         setpoint_min_interval)
+                         setpoint_min_interval,
+                         cost_signal, cost_scaling_factor)
         self._pwm_period = pwm_period
         self._pwm_value: Optional[int] = None
         target_entity_name = split_entity_id(target_entity_id)[1]
@@ -865,13 +894,16 @@ class NumberPidController(AbstractPidController):
             output_max: Optional[float],
             switch_entity_id: str,
             switch_inverted: bool,
-            setpoint_min_interval: Optional[timedelta] = None
+            setpoint_min_interval: Optional[timedelta] = None,
+            cost_signal: Optional[str] = None,
+            cost_scaling_factor: Optional[float] = None,
     ):
         super().__init__(name, mode, target_entity_id,
                          pid_params, pid_sample_period,
                          inverted, keep_alive,
                          output_min, output_max,
-                         setpoint_min_interval)
+                         setpoint_min_interval,
+                         cost_signal, cost_scaling_factor)
         self._switch_entity_id = switch_entity_id
         self._switch_inverted = switch_inverted
 
@@ -972,13 +1004,16 @@ class ClimatePidController(AbstractPidController):
             keep_alive: Optional[timedelta],
             output_min: Optional[float],
             output_max: Optional[float],
-            setpoint_min_interval: Optional[timedelta] = None
+            setpoint_min_interval: Optional[timedelta] = None,
+            cost_signal: Optional[str] = None,
+            cost_scaling_factor: Optional[float] = None,
     ):
         super().__init__(name, mode, target_entity_id,
                          pid_params, pid_sample_period,
                          inverted, keep_alive,
                          output_min, output_max,
-                         setpoint_min_interval)
+                         setpoint_min_interval,
+                         cost_signal, cost_scaling_factor)
 
     @property
     def working(self):

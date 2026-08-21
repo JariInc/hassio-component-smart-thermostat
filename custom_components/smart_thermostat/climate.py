@@ -86,6 +86,8 @@ CONF_PID_MAX = "max"
 CONF_PID_SWITCH_ENTITY_ID = "switch_entity_id"
 CONF_PID_SWITCH_INVERTED = "switch_inverted"
 CONF_PWM_SWITCH_PERIOD = "pwm_period"
+CONF_COST_SIGNAL = "cost_signal"
+CONF_COST_SCALING_FACTOR = "cost_scaling_factor"
 
 SUPPORT_FLAGS = ClimateEntityFeature.TARGET_TEMPERATURE
 SUPPORTED_TARGET_DOMAINS = [SWITCH_DOMAIN, INPUT_BOOLEAN_DOMAIN, NUMBER_DOMAIN, INPUT_NUMBER_DOMAIN, CLIMATE_DOMAIN]
@@ -130,7 +132,11 @@ TARGET_SCHEMA_PID_REGULATOR_COMMON = TARGET_SCHEMA_COMMON.extend({
     vol.Optional(CONF_PID_SAMPLE_PERIOD, default=None): vol.Any(None, cv.positive_time_period),
     vol.Optional(CONF_PID_MIN, default=None): vol.Any(None, vol.Coerce(float)),
     vol.Optional(CONF_PID_MAX, default=None): vol.Any(None, vol.Coerce(float)),
-    vol.Optional(CONF_SETPOINT_MIN_INTERVAL, default=None): vol.Any(None, cv.positive_time_period)
+    vol.Optional(CONF_SETPOINT_MIN_INTERVAL, default=None): vol.Any(None, cv.positive_time_period),
+    vol.Optional(CONF_COST_SIGNAL, default=None): vol.Any(None, cv.entity_id),
+    vol.Optional(CONF_COST_SCALING_FACTOR, default=None): vol.Any(
+        None, vol.All(vol.Coerce(float), vol.Range(min=-1, max=1))
+    )
 })
 
 TARGET_SCHEMA_PID_REGULATOR_PWM_SWITCH = TARGET_SCHEMA_PID_REGULATOR_COMMON.extend({
@@ -254,7 +260,9 @@ def _create_controllers(
                     inverted,
                     keep_alive,
                     conf[CONF_PWM_SWITCH_PERIOD],
-                    conf[CONF_SETPOINT_MIN_INTERVAL]
+                    conf[CONF_SETPOINT_MIN_INTERVAL],
+                    conf.get(CONF_COST_SIGNAL),
+                    conf.get(CONF_COST_SCALING_FACTOR),
                 )
             else:
                 min_duration = conf[CONF_MIN_DUR] if CONF_MIN_DUR in conf else None
@@ -307,7 +315,9 @@ def _create_controllers(
                 conf[CONF_PID_MAX],
                 conf[CONF_PID_SWITCH_ENTITY_ID],
                 conf[CONF_PID_SWITCH_INVERTED],
-                conf[CONF_SETPOINT_MIN_INTERVAL]
+                conf[CONF_SETPOINT_MIN_INTERVAL],
+                conf.get(CONF_COST_SIGNAL),
+                conf.get(CONF_COST_SCALING_FACTOR),
             )
 
         elif domain in [CLIMATE_DOMAIN]:
@@ -323,7 +333,9 @@ def _create_controllers(
                 keep_alive,
                 conf[CONF_PID_MIN],
                 conf[CONF_PID_MAX],
-                conf[CONF_SETPOINT_MIN_INTERVAL]
+                conf[CONF_SETPOINT_MIN_INTERVAL],
+                conf.get(CONF_COST_SIGNAL),
+                conf.get(CONF_COST_SCALING_FACTOR),
             )
 
         else:

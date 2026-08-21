@@ -166,6 +166,8 @@ See [General PID explanation](docs/PID.md) how to tune PID parameters.
 * `pid_sample_period` _(Optional)_ - PID constant sample time period.
 * `setpoint_min_interval` _(Optional)_ - Minimum time between setpoint changes. Prevents rapid switching/beeping when the sensor updates frequently.
 * `pwm_period`  _(Required)_ - PWM period. Switch will be turned on and turned off according internal PID output once in this period.  
+* `cost_signal` _(Optional)_ - Numeric entity used to offset the PID setpoint (e.g. an energy-price sensor).
+* `cost_scaling_factor` _(Optional, range -1..1)_ - Multiplier for `cost_signal`. PID setpoint = climate setpoint + `cost_signal` * `cost_scaling_factor`. Offset is applied only when both values are set and the entity is valid.
 
 #### Behavior
 
@@ -193,6 +195,8 @@ See [General PID explanation](docs/PID.md) how to tune PID parameters.
 * `setpoint_min_interval` _(Optional)_ - Minimum time between setpoint changes. Prevents rapid setpoint switching/beeping when the sensor updates frequently and the demand sits on a temperature step boundary; the previous target is held until this interval has elapsed.
 * `min` _(Optional)_ - Minimum temperature which can be set. Attribute `min_temp` from `entity_id` will be used if not specified.
 * `max` _(Optional)_ - Maximum temperature which can be set. Attribute `max_temp` from `entity_id` will be used if not specified.
+* `cost_signal` _(Optional)_ - Numeric entity used to offset the PID setpoint (e.g. an energy-price sensor).
+* `cost_scaling_factor` _(Optional, range -1..1)_ - Multiplier for `cost_signal`. PID setpoint = climate setpoint + `cost_signal` * `cost_scaling_factor`. Offset is applied only when both values are set and the entity is valid.
 
 #### Behavior
 
@@ -219,6 +223,8 @@ See [General PID explanation](docs/PID.md) how to tune PID parameters.
 * `max` _(Optional)_ - Maximum temperature which can be set. Attribute `max` from `entity_id` will be used if not specified.
 * `switch_entity_id` _(Required)_ - Switch entity which belongs to `switch`,`input_boolean` domains.
 * `switch_inverted` _(Optional, default=false)_ - Is `switch_entity_id` inverted?
+* `cost_signal` _(Optional)_ - Numeric entity used to offset the PID setpoint (e.g. an energy-price sensor).
+* `cost_scaling_factor` _(Optional, range -1..1)_ - Multiplier for `cost_signal`. PID setpoint = climate setpoint + `cost_signal` * `cost_scaling_factor`. Offset is applied only when both values are set and the entity is valid.
 
 #### Behavior
 
